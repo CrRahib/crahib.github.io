@@ -47,10 +47,11 @@ p{margin:0}
 /* ---------- hero ---------- */
 .hero{position:relative;border-bottom:var(--line)}
 .hero canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
-.hero-copy{position:relative;display:flex;flex-direction:column;gap:22px;align-items:flex-start;padding:clamp(48px,9vw,120px) var(--gutter) clamp(40px,7vw,88px);max-width:min(100%,900px);pointer-events:none}
+.hero-copy{position:relative;display:flex;flex-direction:column;gap:22px;align-items:flex-start;padding:clamp(48px,9vw,120px) var(--gutter) clamp(40px,7vw,88px);max-width:min(100%,1100px);pointer-events:none}
 .hero-copy a{pointer-events:auto}
-.hero h1{font-size:clamp(30px,10vw,148px);line-height:.92;text-transform:uppercase}
-h1,h2,h3{overflow-wrap:anywhere}
+/* Syne 800 is very wide: the longest word ("WATCHING.") is ~9.7em, so the size is capped to fit the column whole. */
+.hero h1{font-size:clamp(26px,8.9vw,98px);line-height:.92;text-transform:uppercase}
+h1,h2,h3{overflow-wrap:break-word;hyphens:manual}
 .hero h1 em{font-style:normal;color:var(--blue)}
 .hero .lede{font-size:clamp(18px,2vw,22px);max-width:34ch;font-weight:500}
 .btns{display:flex;flex-wrap:wrap;gap:12px}
@@ -95,11 +96,11 @@ section{padding:clamp(48px,7vw,96px) var(--gutter)}
 
 /* ---------- tracks ---------- */
 .note{max-width:65ch;color:var(--mute);margin-bottom:28px}
-.track{display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);border-top:var(--line)}
+.track{display:grid;grid-template-columns:minmax(200px,300px) minmax(0,1fr);border-top:var(--line)}
 .track:last-child{border-bottom:var(--line)}
 .track-head{display:flex;flex-direction:column;gap:8px;padding:22px 20px 22px 0;border-right:var(--line)}
 .track-head .id{display:inline-flex;align-self:flex-start;padding:2px 9px;border-radius:4px;color:var(--ink);font-weight:500}
-.track-head h3{font-size:clamp(22px,2.4vw,30px);line-height:1}
+.track-head h3{font-size:clamp(20px,2vw,25px);line-height:1}
 .track-head p{font-size:15px;color:var(--mute)}
 .clips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:16px;padding:22px 0 22px 20px;background:repeating-linear-gradient(90deg,transparent 0 79px,rgba(23,20,31,.1) 79px 80px)}
 .clips.v{grid-template-columns:repeat(4,minmax(0,1fr))}
@@ -164,7 +165,7 @@ dialog.player button{min-height:40px;padding:6px 16px;border:2px solid var(--pap
 
 /* ---------- contact ---------- */
 .contact{display:flex;flex-direction:column;gap:24px;align-items:flex-start;background:var(--pink)}
-.contact h2{font-size:clamp(30px,10vw,150px);line-height:.88;text-transform:uppercase}
+.contact h2{font-size:clamp(26px,8.1vw,118px);line-height:.88;text-transform:uppercase}
 .contact .mail{font-family:var(--display);font-weight:700;font-size:clamp(20px,3.4vw,40px);word-break:break-word}
 .links{display:flex;flex-wrap:wrap;gap:10px}
 footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;padding:16px var(--gutter);border-top:var(--line)}
