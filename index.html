@@ -93,6 +93,10 @@ section{padding:clamp(48px,7vw,96px) var(--gutter)}
 .reel .go{flex:none;display:grid;place-items:center;width:clamp(64px,10vw,128px);aspect-ratio:1;border-radius:50%;background:var(--yellow);color:var(--ink);border:var(--line);transition:transform .2s}
 .reel:hover .go{transform:scale(1.08) rotate(-8deg)}
 .reel .go svg{width:36%;margin-left:8%}
+#reelSlot{position:relative}
+.sound{position:absolute;top:clamp(12px,2vw,22px);right:clamp(12px,2vw,22px);z-index:2;display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:8px 16px;border:var(--line);border-radius:999px;background:var(--paper);color:var(--ink);font:500 15px/1 var(--mono,monospace);cursor:pointer}
+.sound svg{width:20px;height:20px}
+.sound:focus-visible{outline:3px solid var(--blue);outline-offset:2px}
 
 /* ---------- tracks ---------- */
 .note{max-width:65ch;color:var(--mute);margin-bottom:28px}
@@ -324,6 +328,38 @@ $("#reelSlot").innerHTML = CONFIG.reelVideo
   : CONFIG.reel
     ? `<a class="reel" href="${esc(CONFIG.reel)}" target="_blank" rel="noopener"><strong>Play the<br>showreel</strong>${PLAY}</a>`
     : `<div class="reel"><strong>Showreel<br>link goes here</strong>${PLAY}</div>`;
+
+/* ---------- showreel sound: plays with sound when scrolled into view ----------
+   Browsers block sound until the visitor has clicked, tapped or pressed a key once
+   (scrolling does not count), so the first interaction anywhere unlocks it. */
+(function reelSound() {
+  const v = document.querySelector("#reelSlot video");
+  if (!v || reduced) return;
+  const btn = document.createElement("button");
+  btn.type = "button"; btn.className = "sound";
+  $("#reelSlot").appendChild(btn);
+  const ON = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  const OFF = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 9l6 6M22 9l-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+  let unlocked = !!(navigator.userActivation && navigator.userActivation.hasBeenActive);
+  let wantSound = true, inView = false, started = false, playerOpen = false;
+  function apply() {
+    const audible = unlocked && wantSound && inView && !playerOpen;
+    if (audible && !started) { v.currentTime = 0; started = true; }
+    v.muted = !audible;
+    if (inView && !playerOpen) v.play().catch(() => {});
+    const on = unlocked && wantSound;
+    btn.innerHTML = (on ? ON : OFF) + (on ? "Sound on" : unlocked ? "Sound off" : "Tap for sound");
+    btn.setAttribute("aria-pressed", String(on));
+  }
+  const unlock = (e) => { if (e.target.closest && e.target.closest(".sound")) return; if (!unlocked) { unlocked = true; apply(); } };
+  ["pointerdown", "keydown", "touchend"].forEach((e) => addEventListener(e, unlock, { capture: true, passive: true }));
+  btn.addEventListener("click", (e) => { e.stopPropagation(); if (!unlocked) { unlocked = true; wantSound = true; } else { wantSound = !wantSound; } apply(); });
+  new IntersectionObserver((es) => { inView = es[0].isIntersecting; apply(); }, { threshold: 0.5 }).observe(v);
+  const dlg = $("#player");
+  dlg.addEventListener("close", () => { playerOpen = false; apply(); });
+  new MutationObserver(() => { playerOpen = dlg.open; apply(); }).observe(dlg, { attributes: true, attributeFilter: ["open"] });
+  apply();
+})();
 
 /* ---------- stand-in thumbnails, one drawing per kind of edit ---------- */
 function thumb(kind, i) {
