@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>C.Rahib · Video Editor</title>
+<meta name="description" content="Video editor portfolio of C.Rahib: UGC and product ads, documentary montages, motion graphics and podcast edits.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: the page is an editing timeline printed on a risograph.
+   Three inks overprint on paper; work is laid out as video tracks V4 to V1. */
+:root{
+  color-scheme: light;
+  --paper:#EFEBE2;
+  --paper-2:#E4DFD3;
+  --ink:#17141F;
+  --mute:#565160;
+  --pink:#FF3D7F;
+  --blue:#2A3BE8;
+  --yellow:#FFC928;
+  --display:"Syne","Arial Black",system-ui,sans-serif;
+  --body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
+  --mono:"DM Mono",ui-monospace,Menlo,Consolas,monospace;
+  --gutter:clamp(16px,4vw,56px);
+  --line:2px solid var(--ink);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--body);font-size:17px;line-height:1.55;overflow-x:hidden}
+a{color:inherit}
+a:focus-visible,button:focus-visible{outline:3px solid var(--blue);outline-offset:3px}
+h1,h2,h3{font-family:var(--display);font-weight:800;margin:0;text-wrap:balance;letter-spacing:-.02em}
+p{margin:0}
+.mono{font-family:var(--mono);font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+
+/* ---------- top bar ---------- */
+.bar{position:sticky;top:0;z-index:20;display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;padding:12px var(--gutter);background:var(--paper);border-bottom:var(--line)}
+.bar .name{font-family:var(--display);font-weight:800;font-size:18px;text-decoration:none;margin-right:auto}
+.bar nav{display:flex;flex-wrap:wrap;gap:4px 20px}
+.bar nav a{text-decoration:none;padding:6px 0;border-bottom:2px solid transparent}
+.bar nav a:hover{border-bottom-color:var(--pink)}
+.tc{font-variant-numeric:tabular-nums;background:var(--ink);color:var(--paper);padding:5px 10px;border-radius:4px}
+.playhead{position:absolute;left:0;bottom:-2px;height:2px;width:100%;background:var(--pink);transform-origin:0 50%;transform:scaleX(0)}
+
+/* ---------- hero ---------- */
+.hero{position:relative;border-bottom:var(--line)}
+.hero canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.hero-copy{position:relative;display:flex;flex-direction:column;gap:22px;align-items:flex-start;padding:clamp(48px,9vw,120px) var(--gutter) clamp(40px,7vw,88px);max-width:min(100%,900px);pointer-events:none}
+.hero-copy a{pointer-events:auto}
+.hero h1{font-size:clamp(30px,10vw,148px);line-height:.92;text-transform:uppercase}
+h1,h2,h3{overflow-wrap:anywhere}
+.hero h1 em{font-style:normal;color:var(--blue)}
+.hero .lede{font-size:clamp(18px,2vw,22px);max-width:34ch;font-weight:500}
+.btns{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:10px;min-height:48px;padding:10px 22px;border:var(--line);border-radius:999px;text-decoration:none;font-weight:600;background:var(--paper);transition:transform .15s,box-shadow .15s}
+.btn.fill{background:var(--ink);color:var(--paper)}
+.btn:hover{transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--pink)}
+.btn svg{width:14px;height:14px}
+@media (max-width:900px){
+  .hero canvas{position:relative;inset:auto;height:clamp(240px,48vw,400px);border-bottom:var(--line)}
+  .hero-copy{padding-top:32px;max-width:none}
+}
+@media (max-width:560px){
+  .bar{gap:8px 12px}
+  .bar nav{order:3;flex-basis:100%;justify-content:space-between;gap:4px 12px}
+  .btns{width:100%}
+  .btns .btn{flex:1 1 150px;justify-content:center}
+}
+
+/* ---------- ticker ---------- */
+.ticker{overflow:hidden;border-bottom:var(--line);background:var(--yellow);padding:10px 0}
+.ticker div{display:flex;gap:40px;width:max-content;animation:tick 28s linear infinite;font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;white-space:nowrap}
+.ticker span::after{content:"✳";margin-left:40px}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* ---------- sections ---------- */
+section{padding:clamp(48px,7vw,96px) var(--gutter)}
+.head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 24px;margin-bottom:clamp(24px,4vw,48px)}
+.head h2{font-size:clamp(30px,6vw,84px);line-height:.95;text-transform:uppercase}
+.head .mono{color:var(--mute)}
+
+/* ---------- reel ---------- */
+.reel{position:relative;display:flex;font:inherit;text-align:left;cursor:pointer;align-items:flex-end;justify-content:space-between;gap:24px;aspect-ratio:16/9;max-height:76vh;width:100%;padding:clamp(18px,3vw,40px);background:var(--blue);color:#fff;border:var(--line);border-radius:14px;text-decoration:none;overflow:hidden}
+.reel:not(.has-video)::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--pink) 34%,transparent 36%);background-size:14px 14px;transform:rotate(15deg) scale(1.6);mask-image:linear-gradient(115deg,transparent 35%,#000 100%);-webkit-mask-image:linear-gradient(115deg,transparent 35%,#000 100%);mix-blend-mode:multiply}
+.reel>*{position:relative}
+.reel video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.reel.has-video{background:var(--paper);color:var(--ink)}
+.reel.has-video strong{background:var(--paper);border:var(--line);border-radius:10px;padding:8px 14px;font-size:clamp(18px,3vw,40px)}
+.reel strong{font-family:var(--display);font-weight:800;font-size:clamp(28px,5vw,72px);line-height:.95;text-transform:uppercase}
+.reel .go{flex:none;display:grid;place-items:center;width:clamp(64px,10vw,128px);aspect-ratio:1;border-radius:50%;background:var(--yellow);color:var(--ink);border:var(--line);transition:transform .2s}
+.reel:hover .go{transform:scale(1.08) rotate(-8deg)}
+.reel .go svg{width:36%;margin-left:8%}
+
+/* ---------- tracks ---------- */
+.note{max-width:65ch;color:var(--mute);margin-bottom:28px}
+.track{display:grid;grid-template-columns:minmax(180px,240px) minmax(0,1fr);border-top:var(--line)}
+.track:last-child{border-bottom:var(--line)}
+.track-head{display:flex;flex-direction:column;gap:8px;padding:22px 20px 22px 0;border-right:var(--line)}
+.track-head .id{display:inline-flex;align-self:flex-start;padding:2px 9px;border-radius:4px;color:var(--ink);font-weight:500}
+.track-head h3{font-size:clamp(22px,2.4vw,30px);line-height:1}
+.track-head p{font-size:15px;color:var(--mute)}
+.clips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:16px;padding:22px 0 22px 20px;background:repeating-linear-gradient(90deg,transparent 0 79px,rgba(23,20,31,.1) 79px 80px)}
+.clips.v{grid-template-columns:repeat(4,minmax(0,1fr))}
+.clip{display:flex;flex-direction:column;min-width:0;padding:0;font:inherit;color:inherit;text-align:left;cursor:default;border:var(--line);border-radius:10px;background:var(--paper);text-decoration:none;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.clip.feature{grid-column:1/-1}
+a.clip,button.clip{cursor:pointer}
+a.clip:hover,button.clip:hover{transform:translate(-3px,-3px);box-shadow:6px 6px 0 var(--ink)}
+.thumb{display:block;position:relative;aspect-ratio:16/9;border-bottom:var(--line);overflow:hidden}
+.clip.v .thumb{aspect-ratio:9/16}
+.clip .thumb,.clip .meta{width:100%}
+.thumb svg,.thumb video,.thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.thumb .tag{position:absolute;left:8px;top:8px;padding:2px 8px;border-radius:4px;background:var(--ink);color:var(--paper);font-family:var(--mono);font-size:11px;letter-spacing:.04em;text-transform:uppercase}
+.meta{display:flex;flex-direction:column;gap:2px;padding:10px 12px 12px}
+.meta strong{font-weight:600;line-height:1.25}
+.meta span{font-size:14px;color:var(--mute)}
+.meta .watch{font-family:var(--mono);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--blue);margin-top:4px}
+@media (max-width:900px){
+  .track{grid-template-columns:minmax(0,1fr)}
+  .track-head{border-right:0;padding:20px 0 0}
+  .clips{padding:16px 0 22px}
+}
+@media (max-width:560px){
+  .clips{grid-template-columns:minmax(0,1fr)}
+  .clips.v{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* ---------- player ---------- */
+dialog.player{width:min(1100px,calc(100vw - 32px));max-width:none;padding:0;border:var(--line);border-radius:12px;background:var(--ink);color:var(--paper);overflow:hidden}
+dialog.player::backdrop{background:rgba(23,20,31,.8)}
+dialog.player video{display:block;width:100%;max-height:78vh;background:#000}
+dialog.player .row{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:10px 14px}
+dialog.player button{min-height:40px;padding:6px 16px;border:2px solid var(--paper);border-radius:999px;background:none;color:inherit;font:inherit;font-weight:600;cursor:pointer}
+
+/* thumbnail motion */
+.thumb svg *{transform-box:fill-box;transform-origin:center}
+.a-spin{animation:spin 9s linear infinite}
+.a-orbit{animation:orbit 5s ease-in-out infinite alternate}
+.a-draw{stroke-dasharray:200;animation:draw 3.2s ease-in-out infinite alternate}
+.a-bob{animation:bob 3.4s ease-in-out infinite alternate}
+.a-sweep{animation:sweep 3.6s ease-in-out infinite}
+.a-slide{animation:slide 4.5s cubic-bezier(.2,.8,.2,1) infinite}
+.a-grow{transform-origin:bottom!important;animation:grow 4.5s cubic-bezier(.2,.8,.2,1) infinite}
+.a-cap{animation:cap 3s steps(1) infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes orbit{from{transform:translate(-18px,6px)}to{transform:translate(22px,-8px)}}
+@keyframes draw{from{stroke-dashoffset:200}to{stroke-dashoffset:0}}
+@keyframes bob{from{transform:translateY(2px) rotate(-3deg)}to{transform:translateY(-4px) rotate(3deg)}}
+@keyframes sweep{0%,20%{transform:translateX(-30px);opacity:0}50%{opacity:.9}80%,100%{transform:translateX(30px);opacity:0}}
+@keyframes slide{0%{transform:translateX(-110%)}18%,82%{transform:none}100%{transform:translateX(-110%)}}
+@keyframes grow{0%{transform:scaleY(.1)}25%,82%{transform:none}100%{transform:scaleY(.1)}}
+@keyframes cap{0%{opacity:.25}34%{opacity:1}67%{opacity:.25}}
+
+/* ---------- about ---------- */
+.about{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:clamp(24px,5vw,72px);background:var(--ink);color:var(--paper)}
+.about h2{font-size:clamp(32px,4.6vw,64px);line-height:.98;text-transform:uppercase}
+.about h2 em{font-style:normal;color:var(--yellow)}
+.about .col{display:flex;flex-direction:column;gap:20px}
+.about p{max-width:60ch}
+.about .mono{color:#B9B3C4}
+.chips{display:flex;flex-wrap:wrap;gap:8px;list-style:none;margin:0;padding:0}
+.chips li{padding:6px 14px;border:2px solid var(--paper);border-radius:999px;font-weight:500}
+
+/* ---------- contact ---------- */
+.contact{display:flex;flex-direction:column;gap:24px;align-items:flex-start;background:var(--pink)}
+.contact h2{font-size:clamp(30px,10vw,150px);line-height:.88;text-transform:uppercase}
+.contact .mail{font-family:var(--display);font-weight:700;font-size:clamp(20px,3.4vw,40px);word-break:break-word}
+.links{display:flex;flex-wrap:wrap;gap:10px}
+footer{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px 24px;padding:16px var(--gutter);border-top:var(--line)}
+
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{animation:none!important;transition:none!important}
+}
+</style>
+</head>
+<body>
+
+<header class="bar">
+  <a class="name" href="#top" data-f="name">C.Rahib</a>
+  <nav aria-label="Sections">
+    <a href="#reel">Reel</a>
+    <a href="#work">Work</a>
+    <a href="#about">About</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <span class="mono tc" id="tc" aria-hidden="true">00:00:00:00</span>
+  <span class="playhead" id="playhead" aria-hidden="true"></span>
+</header>
+
+<main id="top">
+  <div class="hero">
+    <canvas id="gl" aria-hidden="true"></canvas>
+    <div class="hero-copy">
+      <span class="mono" data-f="role">Video editor</span>
+      <h1>Cuts that keep people <em>watching.</em></h1>
+      <p class="lede">Motion graphics, UGC ads, product spots and business films, edited to hold attention from the first frame.</p>
+      <div class="btns">
+        <a class="btn fill" href="#reel"><svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0l10 6-10 6z" fill="currentColor"/></svg>Watch the reel</a>
+        <a class="btn" href="#work">See the work</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="ticker" aria-hidden="true"><div id="ticker"></div></div>
+
+  <section id="reel">
+    <div class="head"><h2>Showreel</h2><span class="mono">Best of, in one cut</span></div>
+    <div id="reelSlot"></div>
+  </section>
+
+  <section id="work">
+    <div class="head"><h2>Work</h2><span class="mono">Four tracks, one timeline</span></div>
+    <p class="note" id="workNote">Any clip tagged Sample clip is a stand-in video made for this template.</p>
+    <div id="tracks"></div>
+  </section>
+
+  <section class="about" id="about">
+    <div class="col">
+      <span class="mono">About</span>
+      <h2>Story first.<br><em>Then the polish.</em></h2>
+    </div>
+    <div class="col">
+      <p data-f="bio">I'm a video editor who cuts for attention: beat-synced vertical ads, creator-style UGC, product spots, podcast edits and documentary montages built from real footage. I build every edit around rhythm, with cuts on the beat, sound design that sells the moment and a grade that ties it together.</p>
+      <span class="mono">Tools</span>
+      <ul class="chips" id="tools"></ul>
+    </div>
+  </section>
+
+  <section class="contact" id="contact">
+    <span class="mono">Available for editing roles and freelance projects</span>
+    <h2>Let's cut something.</h2>
+    <a class="mail" id="mail">anonymous0rahib@gmail.com</a>
+    <div class="links" id="links"></div>
+  </section>
+</main>
+
+<dialog class="player" id="player" aria-label="Video player">
+  <video id="playerVideo" controls playsinline></video>
+  <div class="row"><span id="playerTitle"></span><button type="button" id="playerClose">Close</button></div>
+</dialog>
+
+<footer class="mono">
+  <span data-f="name">C.Rahib</span>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+/* =====================================================================
+   CONFIG: everything you need to personalise lives here.
+   Leave a url as "" until you have one; the card then shows without a link.
+   ===================================================================== */
+const CONFIG = {
+  name:  "C.Rahib",
+  role:  "Video editor",
+  email: "anonymous0rahib@gmail.com",
+  reel:  "",                       // link to your showreel (YouTube, Vimeo, Drive), used when reelVideo is ""
+  reelVideo: "clips/showreel.mp4",
+  reelPoster: "clips/showreel.jpg",     // a video file shipped with the site; plays on the page
+  // Each clip takes either  video: "clips/file.mp4" (+ optional poster)  to play on the page,
+  // or  url: "https://..."  to link out. Remove  sample: true  once the clip is your own work.
+  bio:   "I'm a video editor who cuts for attention: beat-synced vertical ads, creator-style UGC, product spots, podcast edits and documentary montages built from real footage. I build every edit around rhythm, with cuts on the beat, sound design that sells the moment and a grade that ties it together.",
+  tools: ["Premiere Pro", "After Effects", "DaVinci Resolve", "CapCut"],
+  links: [
+    { label: "LinkedIn", url: "https://www.linkedin.com/in/chy-rahib-85a3171bb/" }
+  ],
+  tracks: [
+    { id: "V5", kind: "doc", ink: "blue", name: "Documentary editing",
+      blurb: "Real-footage montages cut to music: shot selection, pacing, grade and sound.",
+      clips: [
+        { title: "City Rain Vigil: documentary montage", client: "Personal film · 74 s, 1080p, real footage, no narration · music by AtlasAudio", video: "clips/city-rain-vigil.mp4", poster: "clips/city-rain-vigil.jpg", feature: true }
+      ]},
+    { id: "V4", kind: "motion", ink: "pink", name: "Motion graphics",
+      blurb: "Animated type, logo stings and explainers.",
+      clips: [
+        { title: "CUTLINE Studio: agency showreel promo", client: "Concept piece for a fictional agency · 30 s, with sound", video: "clips/cutline.mp4", poster: "clips/cutline.jpg", feature: true },
+        { title: "ARC ONE: product reveal teaser", client: "Concept piece for a fictional headphone brand · 15 s, with sound", video: "clips/arc-one.mp4", poster: "clips/arc-one.jpg" },
+        { title: "LEDGERLY: data explainer", client: "Concept piece for a fictional budgeting app · 15 s, silent", video: "clips/ledgerly.mp4", poster: "clips/ledgerly.jpg" }
+      ]},
+    { id: "V3", kind: "ugc", ink: "yellow", name: "UGC editing", vertical: true,
+      blurb: "Vertical creator-style ads with fast hooks and burned-in captions.",
+      clips: [
+        { title: "OVRTIME: beat-synced vertical ad", client: "Concept piece for a fictional sportswear brand · 15 s, with sound", video: "clips/ovrtime.mp4", poster: "clips/ovrtime.jpg" },
+        { title: "SOLPOP: soda reaction ad", client: "Creator-style product spot · 12 s, with sound", video: "clips/solpop.mp4", poster: "clips/solpop.jpg" },
+        { title: "Money talk: captioned explainer", client: "Talking-head short with kinetic captions · 1 min 7 s, with sound", video: "clips/money-explainer.mp4", poster: "clips/money-explainer.jpg" },
+        { title: "Ad adaptation: three product cuts", client: "Soda, outerwear and pizza spots · 6 s, with sound", video: "clips/ad-adaptation.mp4", poster: "clips/ad-adaptation.jpg" }
+      ]},
+    { id: "V2", kind: "product", ink: "blue", name: "Product editing",
+      blurb: "Clean product spots: macro detail, true colour, tight pacing.",
+      clips: [
+        { title: "Coca-Cola Zero Sugar: \"Best Coke Ever?\"", client: "Coca-Cola Philippines · 15 s vertical spot on YouTube", url: "https://youtube.com/shorts/jKl0-lrTLso", image: "clips/coke-short.jpg" },
+        { title: "RAY: Pierce the Dark", client: "Concept piece for a fictional energy drink · 15 s vertical, 3D can + stock, with sound", video: "clips/ray.mp4", poster: "clips/ray.jpg" }
+      ]},
+    { id: "V1", kind: "business", ink: "pink", name: "Business editing",
+      blurb: "Interviews, case studies and event recaps for company channels.",
+      clips: [
+        { title: "Figuring Out × Mel Robbins: podcast opening", client: "Figuring Out with Raj Shamani · Ep. FO584 · first 1:36, with sound", video: "clips/podcast-mel-robbins.mp4", poster: "clips/podcast-mel-robbins.jpg", feature: true }
+      ]}
+  ]
+};
+
+/* ---------- small helpers ---------- */
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const INK = { pink: "var(--pink)", blue: "var(--blue)", yellow: "var(--yellow)", ink: "var(--ink)", paper: "var(--paper)" };
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- fill text from CONFIG ---------- */
+document.querySelectorAll("[data-f]").forEach((el) => { el.textContent = CONFIG[el.dataset.f]; });
+$("#ticker").innerHTML = Array(2).fill(CONFIG.tracks.map((t) => `<span>${esc(t.name)}</span>`).join("") + "<span>Colour</span><span>Sound design</span><span>Captions</span>").join("");
+$("#tools").innerHTML = CONFIG.tools.map((t) => `<li>${esc(t)}</li>`).join("");
+$("#links").innerHTML = CONFIG.links.map((l) => l.url
+  ? `<a class="btn" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label)}</a>`
+  : `<span class="btn">${esc(l.label)}</span>`).join("");
+const mail = $("#mail");
+mail.textContent = CONFIG.email;
+if (CONFIG.email.includes("@") && !CONFIG.email.startsWith("[")) mail.href = "mailto:" + CONFIG.email;
+const PLAY = '<span class="go"><svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0l10 6-10 6z" fill="currentColor"/></svg></span>';
+const autoplay = reduced ? "" : "autoplay";
+$("#reelSlot").innerHTML = CONFIG.reelVideo
+  ? `<button type="button" class="reel has-video" data-video="${esc(CONFIG.reelVideo)}" data-title="Showreel"><video src="${esc(CONFIG.reelVideo)}" ${CONFIG.reelPoster ? `poster="${esc(CONFIG.reelPoster)}"` : ""} muted loop playsinline ${autoplay} preload="metadata" aria-hidden="true"></video><strong>Play the showreel</strong>${PLAY}</button>`
+  : CONFIG.reel
+    ? `<a class="reel" href="${esc(CONFIG.reel)}" target="_blank" rel="noopener"><strong>Play the<br>showreel</strong>${PLAY}</a>`
+    : `<div class="reel"><strong>Showreel<br>link goes here</strong>${PLAY}</div>`;
+
+/* ---------- stand-in thumbnails, one drawing per kind of edit ---------- */
+function thumb(kind, i) {
+  const sets = [["pink", "blue", "yellow"], ["blue", "yellow", "pink"], ["yellow", "pink", "blue"], ["pink", "yellow", "blue"]];
+  const [a, b, c] = sets[i % sets.length].map((k) => INK[k]);
+  const ink = INK.ink, paper = INK.paper;
+  if (kind === "motion") return `<svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="160" height="90" fill="var(--paper-2)"/>
+    <circle class="a-orbit" cx="${56 + i * 14}" cy="44" r="24" fill="${a}"/>
+    <rect class="a-spin" x="${88 - i * 10}" y="26" width="38" height="38" fill="${b}" style="mix-blend-mode:multiply"/>
+    <path class="a-draw" d="M12 70 q14 -22 28 0 t28 0 t28 0 t28 0 t28 0" fill="none" stroke="${ink}" stroke-width="3" stroke-linecap="round"/>
+    <circle class="a-bob" cx="${132 - i * 30}" cy="20" r="7" fill="${c}"/></svg>`;
+  if (kind === "ugc") return `<svg viewBox="0 0 90 160" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="90" height="160" fill="${a}"/>
+    <g class="a-bob"><circle cx="45" cy="62" r="20" fill="${paper}" stroke="${ink}" stroke-width="2"/>
+    <path d="M12 132 q33 -58 66 0 v30 h-66z" fill="${b}" stroke="${ink}" stroke-width="2"/></g>
+    <g fill="${ink}"><rect class="a-cap" x="14" y="118" width="26" height="11" rx="3"/>
+    <rect class="a-cap" x="44" y="118" width="32" height="11" rx="3" style="animation-delay:1s"/>
+    <rect class="a-cap" x="26" y="133" width="38" height="11" rx="3" style="animation-delay:2s"/></g>
+    <rect x="8" y="8" width="${22 + i * 14}" height="4" rx="2" fill="${ink}"/><rect x="8" y="8" width="74" height="4" rx="2" fill="none" stroke="${ink}"/></svg>`;
+  if (kind === "product") return `<svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="160" height="90" fill="${a}"/>
+    <ellipse cx="80" cy="74" rx="${52 - i * 6}" ry="9" fill="${ink}" opacity=".25"/>
+    <circle cx="${118 - i * 36}" cy="30" r="34" fill="${c}" style="mix-blend-mode:multiply"/>
+    <g class="a-bob"><rect x="72" y="14" width="16" height="12" rx="2" fill="${ink}"/>
+    <rect x="62" y="24" width="36" height="50" rx="8" fill="${paper}" stroke="${ink}" stroke-width="2"/>
+    <rect x="68" y="42" width="24" height="16" rx="2" fill="${b}"/>
+    <rect class="a-sweep" x="76" y="27" width="6" height="44" rx="3" fill="#fff"/></g></svg>`;
+  return `<svg viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <rect width="160" height="90" fill="var(--paper-2)"/>
+    <circle cx="${58 + i * 8}" cy="36" r="15" fill="${paper}" stroke="${ink}" stroke-width="2"/>
+    <path d="M${28 + i * 8} 90 q30 -52 60 0z" fill="${c}" stroke="${ink}" stroke-width="2"/>
+    <g fill="${b}"><rect class="a-grow" x="112" y="30" width="9" height="22"/><rect class="a-grow" x="125" y="20" width="9" height="32" style="animation-delay:.15s"/><rect class="a-grow" x="138" y="12" width="9" height="40" style="animation-delay:.3s"/></g>
+    <g class="a-slide"><rect x="0" y="62" width="96" height="18" fill="${ink}"/><rect x="0" y="62" width="6" height="18" fill="${a}"/>
+    <rect x="12" y="67" width="48" height="3" fill="${paper}"/><rect x="12" y="73" width="30" height="2" fill="${a}"/></g></svg>`;
+}
+
+$("#tracks").innerHTML = CONFIG.tracks.map((t) => `
+  <div class="track">
+    <div class="track-head">
+      <span class="mono id" style="background:${INK[t.ink]};${t.ink === "blue" ? "color:#fff" : ""}">${esc(t.id)}</span>
+      <h3>${esc(t.name)}</h3>
+      <p>${esc(t.blurb)}</p>
+    </div>
+    <div class="clips${t.vertical ? " v" : ""}">${t.clips.map((c, i) => {
+      const media = c.video
+        ? `<video src="${esc(c.video)}" ${c.poster ? `poster="${esc(c.poster)}"` : ""} muted loop playsinline ${autoplay} preload="metadata"></video>${c.sample ? '<span class="tag">Sample clip</span>' : ""}`
+        : c.image ? `<img src="${esc(c.image)}" alt="" loading="lazy">` : thumb(t.kind, i);
+      const inner = `<span class="thumb">${media}</span>
+        <span class="meta"><strong>${esc(c.title)}</strong><span>${esc(c.client)}</span>${c.video ? '<span class="watch">Play ▶</span>' : c.url ? '<span class="watch">Watch ↗</span>' : ""}</span>`;
+      const cls = "clip" + (t.vertical ? " v" : "") + (c.feature ? " feature" : "");
+      if (c.video) return `<button type="button" class="${cls}" data-video="${esc(c.video)}" data-title="${esc(c.title)}">${inner}</button>`;
+      return c.url ? `<a class="${cls}" href="${esc(c.url)}" target="_blank" rel="noopener">${inner}</a>` : `<div class="${cls}">${inner}</div>`;
+    }).join("")}</div>
+  </div>`).join("");
+if (CONFIG.tracks.every((t) => t.clips.every((c) => (c.url || c.video) && !c.sample))) $("#workNote").remove();
+
+/* ---------- player: click any clip with a video to watch it large ---------- */
+const player = $("#player"), pv = $("#playerVideo");
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-video]");
+  if (!b || !player.showModal) return;
+  pv.src = b.dataset.video;
+  $("#playerTitle").textContent = b.dataset.title || "";
+  player.showModal();
+  pv.play().catch(() => {});
+});
+$("#playerClose").addEventListener("click", () => player.close());
+player.addEventListener("click", (e) => { if (e.target === player) player.close(); });
+player.addEventListener("close", () => { pv.pause(); pv.removeAttribute("src"); pv.load(); });
+
+/* ---------- scroll timecode: the page runs 01:30:00 at 24 fps ---------- */
+const tc = $("#tc"), ph = $("#playhead"), FPS = 24, TOTAL = FPS * 90;
+const two = (n) => String(n).padStart(2, "0");
+function onScroll() {
+  const max = document.documentElement.scrollHeight - innerHeight;
+  const p = max > 0 ? Math.min(1, Math.max(0, scrollY / max)) : 0;
+  const f = Math.round(p * TOTAL);
+  tc.textContent = `00:${two(Math.floor(f / FPS / 60))}:${two(Math.floor(f / FPS) % 60)}:${two(f % FPS)}`;
+  ph.style.transform = `scaleX(${p})`;
+}
+addEventListener("scroll", onScroll, { passive: true });
+onScroll();
+
+/* ---------- three.js hero: video frames overprinted like a riso print ---------- */
+(function hero() {
+  const canvas = $("#gl");
+  if (!window.THREE) return;
+  let renderer;
+  try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false }); } catch (e) { return; }
+  const dpr = Math.min(devicePixelRatio || 1, 2);
+  renderer.setPixelRatio(dpr);
+  renderer.setClearColor(0xEFEBE2, 1);
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 50);
+  camera.position.z = 10;
+  const group = new THREE.Group();
+  scene.add(group);
+
+  const vert = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`;
+  const frag = `
+    precision highp float;
+    varying vec2 vUv;
+    uniform vec3 uInk; uniform float uAngle, uPitch, uTime, uTone, uPhase, uAspect, uMode;
+    float box(vec2 p, vec2 b, float r){ vec2 q = abs(p) - b + r; return length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - r; }
+    void main(){
+      vec2 p = (vUv - 0.5) * vec2(uAspect, 1.0);
+      float d = box(p, vec2(uAspect, 1.0) * 0.5, 0.07);
+      float inside = 1.0 - smoothstep(-0.006, 0.006, d);
+      float m = inside;
+      if (uMode < 0.5) {                       // halftone: dot size follows a slow tonal wave
+        float tone = clamp(uTone + (vUv.y - 0.5) * 0.7 + 0.22 * sin(uTime * 0.7 + vUv.x * 3.2 + uPhase), 0.03, 1.0);
+        float c = cos(uAngle), s = sin(uAngle);
+        vec2 g = mat2(c, -s, s, c) * gl_FragCoord.xy / uPitch;
+        float r = sqrt(tone) * 0.74;
+        m *= 1.0 - smoothstep(r - 0.07, r + 0.07, length(fract(g) - 0.5));
+      } else if (uMode > 1.5) {                // outline only
+        m = 1.0 - smoothstep(0.0, 0.008, abs(d + 0.03) - 0.014);
+      }
+      gl_FragColor = vec4(mix(vec3(1.0), uInk, m), 1.0);
+    }`;
+
+  const INKS = {
+    pink:   { c: [1.0, 0.24, 0.5],    a: 75 },   // screen angles borrowed from real print: M 75, C 15, Y 0, K 45
+    blue:   { c: [0.165, 0.23, 0.91], a: 15 },
+    yellow: { c: [1.0, 0.79, 0.16],   a: 0 },
+    ink:    { c: [0.09, 0.08, 0.12],  a: 45 }
+  };
+  // x, y in cluster units, long side, vertical?, ink, mode (0 halftone, 1 solid, 2 outline)
+  const SPEC = [
+    [-0.55, 0.38, 3.0, 0, "pink", 0], [0.28, -0.12, 3.3, 0, "blue", 0], [0.72, 0.5, 2.0, 1, "yellow", 1],
+    [-0.2, -0.58, 2.1, 1, "pink", 1], [0.58, -0.62, 2.3, 0, "yellow", 0], [-0.85, -0.25, 1.7, 1, "blue", 1],
+    [0.05, 0.62, 2.0, 0, "ink", 2], [0.9, -0.05, 1.6, 1, "ink", 2], [-0.38, 0.05, 1.3, 0, "yellow", 1],
+    [0.42, 0.22, 1.2, 1, "pink", 0], [-0.05, -0.2, 1.0, 0, "ink", 2]
+  ];
+  const geo = new THREE.PlaneGeometry(1, 1);
+  const frames = SPEC.map(([x, y, s, v, ink, mode], i) => {
+    const w = v ? s * 9 / 16 : s, h = v ? s : s * 9 / 16;
+    const mat = new THREE.ShaderMaterial({
+      vertexShader: vert, fragmentShader: frag,
+      blending: THREE.MultiplyBlending, transparent: true, depthTest: false, depthWrite: false, side: THREE.DoubleSide,
+      uniforms: {
+        uInk: { value: new THREE.Vector3(...INKS[ink].c) }, uAngle: { value: INKS[ink].a * Math.PI / 180 },
+        uPitch: { value: 7 * dpr }, uTime: { value: 0 }, uTone: { value: 0.45 + (i % 3) * 0.12 },
+        uPhase: { value: i * 1.7 }, uAspect: { value: w / h }, uMode: { value: mode }
+      }
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.scale.set(w, h, 1);
+    mesh.userData = { x, y, z: ((i * 37) % 11) / 11 * 3 - 1.5, tilt: ((i * 53) % 13) / 13 * 0.5 - 0.25, ph: i * 1.3, sp: 0.35 + (i % 4) * 0.08 };
+    group.add(mesh);
+    return mesh;
+  });
+
+  let spreadX = 3, offsetX = 0, mx = 0, my = 0, visible = true, raf = 0;
+  function resize() {
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+    const visW = 2 * camera.position.z * Math.tan(camera.fov * Math.PI / 360) * camera.aspect;
+    const wide = getComputedStyle(canvas).position === "absolute";
+    offsetX = wide ? visW * 0.23 : 0;
+    spreadX = wide ? Math.min(visW * 0.24, 4.2) : Math.min(visW * 0.42, 4.2);
+    group.scale.setScalar(wide ? 1 : 0.8);
+    draw(performance.now());
+  }
+  function draw(now) {
+    const t = now / 1000;
+    frames.forEach((m) => {
+      const u = m.userData;
+      m.position.set(offsetX + u.x * spreadX, u.y * 2.7 + Math.sin(t * u.sp + u.ph) * 0.2, u.z);
+      m.rotation.set(Math.sin(t * 0.23 + u.ph) * 0.18, Math.sin(t * 0.31 + u.ph * 2.0) * 0.4, u.tilt + Math.sin(t * u.sp * 0.8 + u.ph) * 0.08);
+      m.material.uniforms.uTime.value = t;
+    });
+    group.rotation.y += (mx * 0.22 - group.rotation.y) * 0.05;
+    group.rotation.x += (-my * 0.14 - group.rotation.x) * 0.05;
+    group.position.y = scrollY * 0.004;
+    renderer.render(scene, camera);
+  }
+  function loop(now) { draw(now); if (visible && !reduced) raf = requestAnimationFrame(loop); }
+
+  new ResizeObserver(resize).observe(canvas);
+  addEventListener("pointermove", (e) => { mx = e.clientX / innerWidth * 2 - 1; my = e.clientY / innerHeight * 2 - 1; }, { passive: true });
+  new IntersectionObserver(([e]) => {
+    visible = e.isIntersecting;
+    cancelAnimationFrame(raf);
+    if (visible && !reduced) raf = requestAnimationFrame(loop);
+  }).observe(canvas);
+  resize();
+})();
+</script>
+</body>
+</html>
