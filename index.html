@@ -319,8 +319,10 @@ mail.textContent = CONFIG.email;
 if (CONFIG.email.includes("@") && !CONFIG.email.startsWith("[")) mail.href = "mailto:" + CONFIG.email;
 const PLAY = '<span class="go"><svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0l10 6-10 6z" fill="currentColor"/></svg></span>';
 const autoplay = reduced ? "" : "autoplay";
+// Tiles play a short, silent, low-res loop from clips/previews/; the full file opens in the player.
+const previewOf = (src) => src.replace(/^clips\//, "clips/previews/");
 $("#reelSlot").innerHTML = CONFIG.reelVideo
-  ? `<button type="button" class="reel has-video" data-video="${esc(CONFIG.reelVideo)}" data-title="Showreel"><video src="${esc(CONFIG.reelVideo)}" ${CONFIG.reelPoster ? `poster="${esc(CONFIG.reelPoster)}"` : ""} muted loop playsinline ${autoplay} preload="metadata" aria-hidden="true"></video><strong>Play the showreel</strong>${PLAY}</button>`
+  ? `<button type="button" class="reel has-video" data-video="${esc(CONFIG.reelVideo)}" data-title="Showreel"><video data-src="${esc(previewOf(CONFIG.reelVideo))}" ${CONFIG.reelPoster ? `poster="${esc(CONFIG.reelPoster)}"` : ""} muted loop playsinline preload="none" aria-hidden="true"></video><strong>Play the showreel</strong>${PLAY}</button>`
   : CONFIG.reel
     ? `<a class="reel" href="${esc(CONFIG.reel)}" target="_blank" rel="noopener"><strong>Play the<br>showreel</strong>${PLAY}</a>`
     : `<div class="reel"><strong>Showreel<br>link goes here</strong>${PLAY}</div>`;
@@ -370,7 +372,7 @@ $("#tracks").innerHTML = CONFIG.tracks.map((t) => `
     </div>
     <div class="clips${t.vertical ? " v" : ""}">${t.clips.map((c, i) => {
       const media = c.video
-        ? `<video src="${esc(c.video)}" ${c.poster ? `poster="${esc(c.poster)}"` : ""} muted loop playsinline ${autoplay} preload="metadata"></video>${c.sample ? '<span class="tag">Sample clip</span>' : ""}`
+        ? `<video data-src="${esc(previewOf(c.video))}" ${c.poster ? `poster="${esc(c.poster)}"` : ""} muted loop playsinline preload="none"></video>${c.sample ? '<span class="tag">Sample clip</span>' : ""}`
         : c.image ? `<img src="${esc(c.image)}" alt="" loading="lazy">` : thumb(t.kind, i);
       const inner = `<span class="thumb">${media}</span>
         <span class="meta"><strong>${esc(c.title)}</strong><span>${esc(c.client)}</span>${c.video ? '<span class="watch">Play ▶</span>' : c.url ? '<span class="watch">Watch ↗</span>' : ""}</span>`;
@@ -381,11 +383,25 @@ $("#tracks").innerHTML = CONFIG.tracks.map((t) => `
   </div>`).join("");
 if (CONFIG.tracks.every((t) => t.clips.every((c) => (c.url || c.video) && !c.sample))) $("#workNote").remove();
 
+/* ---------- lazy previews: load when near the screen, play only while visible ---------- */
+(function lazyPreviews() {
+  const vids = [...document.querySelectorAll("video[data-src]")];
+  const load = (v) => { if (!v.src) { v.src = v.dataset.src; v.load(); } };
+  if (!("IntersectionObserver" in window)) { vids.forEach(load); return; }
+  const near = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { load(e.target); near.unobserve(e.target); } }), { rootMargin: "400px 0px" });
+  const seen = new IntersectionObserver((es) => es.forEach((e) => {
+    const v = e.target;
+    if (e.isIntersecting && !reduced) { load(v); v.play().catch(() => {}); } else { v.pause(); }
+  }), { threshold: 0.2 });
+  vids.forEach((v) => { near.observe(v); seen.observe(v); });
+})();
+
 /* ---------- player: click any clip with a video to watch it large ---------- */
 const player = $("#player"), pv = $("#playerVideo");
 document.addEventListener("click", (e) => {
   const b = e.target.closest("[data-video]");
   if (!b || !player.showModal) return;
+  document.querySelectorAll("video[data-src]").forEach((v) => v.pause());
   pv.src = b.dataset.video;
   $("#playerTitle").textContent = b.dataset.title || "";
   player.showModal();
@@ -393,7 +409,10 @@ document.addEventListener("click", (e) => {
 });
 $("#playerClose").addEventListener("click", () => player.close());
 player.addEventListener("click", (e) => { if (e.target === player) player.close(); });
-player.addEventListener("close", () => { pv.pause(); pv.removeAttribute("src"); pv.load(); });
+player.addEventListener("close", () => {
+  pv.pause(); pv.removeAttribute("src"); pv.load();
+  if (!reduced) document.querySelectorAll("video[data-src]").forEach((v) => { const r = v.getBoundingClientRect(); if (v.src && r.bottom > 0 && r.top < innerHeight) v.play().catch(() => {}); });
+});
 
 /* ---------- scroll timecode: the page runs 01:30:00 at 24 fps ---------- */
 const tc = $("#tc"), ph = $("#playhead"), FPS = 24, TOTAL = FPS * 90;
