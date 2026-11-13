@@ -319,8 +319,15 @@ mail.textContent = CONFIG.email;
 if (CONFIG.email.includes("@") && !CONFIG.email.startsWith("[")) mail.href = "mailto:" + CONFIG.email;
 const PLAY = '<span class="go"><svg viewBox="0 0 10 12" aria-hidden="true"><path d="M0 0l10 6-10 6z" fill="currentColor"/></svg></span>';
 const autoplay = reduced ? "" : "autoplay";
+// Videos stream from the jsDelivr CDN (a fast mirror of this GitHub repo); GitHub Pages is the fallback.
+// MEDIA_COMMIT must be a pushed commit that contains the clips. After adding or replacing a video,
+// push first, then set this to the new commit hash (git rev-parse HEAD) and push again.
+const MEDIA_COMMIT = "fa35135f19b8cd165c7f143f120e050790c33f98";
+const CDN = MEDIA_COMMIT ? `https://cdn.jsdelivr.net/gh/CrRahib/crahib.github.io@${MEDIA_COMMIT}/` : "";
+const cdnUrl = (p) => (CDN && /^clips\//.test(p) ? CDN + p : p);
+const fallback = (v) => v.addEventListener("error", () => { const s = v.getAttribute("src") || ""; if (CDN && s.startsWith(CDN)) { v.src = s.slice(CDN.length); v.load(); v.play && v.play().catch(() => {}); } });
 // Tiles play a short, silent, low-res loop from clips/previews/; the full file opens in the player.
-const previewOf = (src) => src.replace(/^clips\//, "clips/previews/");
+const previewOf = (src) => cdnUrl(src.replace(/^clips\//, "clips/previews/"));
 $("#reelSlot").innerHTML = CONFIG.reelVideo
   ? `<button type="button" class="reel has-video" data-video="${esc(CONFIG.reelVideo)}" data-title="Showreel"><video data-src="${esc(previewOf(CONFIG.reelVideo))}" ${CONFIG.reelPoster ? `poster="${esc(CONFIG.reelPoster)}"` : ""} muted loop playsinline preload="none" aria-hidden="true"></video><strong>Play the showreel</strong>${PLAY}</button>`
   : CONFIG.reel
@@ -386,7 +393,7 @@ if (CONFIG.tracks.every((t) => t.clips.every((c) => (c.url || c.video) && !c.sam
 /* ---------- lazy previews: load when near the screen, play only while visible ---------- */
 (function lazyPreviews() {
   const vids = [...document.querySelectorAll("video[data-src]")];
-  const load = (v) => { if (!v.src) { v.src = v.dataset.src; v.load(); } };
+  const load = (v) => { if (!v.src) { fallback(v); v.src = v.dataset.src; v.load(); } };
   if (!("IntersectionObserver" in window)) { vids.forEach(load); return; }
   const near = new IntersectionObserver((es) => es.forEach((e) => { if (e.isIntersecting) { load(e.target); near.unobserve(e.target); } }), { rootMargin: "400px 0px" });
   const seen = new IntersectionObserver((es) => es.forEach((e) => {
@@ -398,11 +405,12 @@ if (CONFIG.tracks.every((t) => t.clips.every((c) => (c.url || c.video) && !c.sam
 
 /* ---------- player: click any clip with a video to watch it large ---------- */
 const player = $("#player"), pv = $("#playerVideo");
+pv.preload = "auto"; fallback(pv);
 document.addEventListener("click", (e) => {
   const b = e.target.closest("[data-video]");
   if (!b || !player.showModal) return;
   document.querySelectorAll("video[data-src]").forEach((v) => v.pause());
-  pv.src = b.dataset.video;
+  pv.src = cdnUrl(b.dataset.video);
   $("#playerTitle").textContent = b.dataset.title || "";
   player.showModal();
   pv.play().catch(() => {});
