@@ -353,7 +353,13 @@ $("#reelSlot").innerHTML = CONFIG.reelVideo
   let wantSound = true, inView = false, started = false, playerOpen = false;
   function apply() {
     const audible = unlocked && wantSound && inView && !playerOpen;
-    if (audible && !started) { v.currentTime = 0; started = true; }
+    // The inline reel shows the silent preview loop; the first time sound is wanted,
+    // switch it to the full showreel (which has the audio) so it plays from the start.
+    if (audible && !started) {
+      started = true;
+      const full = cdnUrl(CONFIG.reelVideo);
+      if (v.getAttribute("src") !== full) { v.dataset.src = full; v.loop = true; v.src = full; v.load(); }
+    }
     v.muted = !audible;
     if (inView && !playerOpen) v.play().catch(() => {});
     const on = unlocked && wantSound;
